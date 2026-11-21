@@ -1,15 +1,25 @@
 import typer
 
-app = typer.Typer(help="AI ecosystem ingestion pipeline")
+
+app = typer.Typer(
+    help="Source-traceable AI ecosystem ingestion pipeline.",
+    no_args_is_help=True,
+)
+
 
 @app.callback()
 def main() -> None:
-    """Manage ingestion tasks."""
+    """Manage ingestion, validation, and export tasks."""
+
 
 @app.command()
 def status() -> None:
-    """Show skeleton status; does not crawl or contact external services."""
-    typer.echo("Skeleton ready. No sources configured for live ingestion yet.")
+    """Show project status without contacting external services."""
+    typer.echo(
+        "Skeleton ready. "
+        "No sources configured for live ingestion yet."
+    )
+
 
 if __name__ == "__main__":
     app()

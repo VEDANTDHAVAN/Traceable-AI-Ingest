@@ -1,4 +1,4 @@
-# AI Intelligence Ingestion
+# Traceable AI Ingest
 
 Async, source-traceable ingestion pipeline for startups, products, AI research papers, jobs, and news. The project is structured to start locally and grow to distributed workers.
 
