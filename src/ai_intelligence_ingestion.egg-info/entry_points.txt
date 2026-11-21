@@ -1,0 +1,2 @@
+[console_scripts]
+ai-ingest = ai_ingest.cli:app

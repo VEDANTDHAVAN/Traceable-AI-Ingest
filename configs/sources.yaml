@@ -1,0 +1,3 @@
+# Populate only after checking source terms, APIs, freshness fields, and access constraints.
+# Each source entry should document permitted access and a stable identity key.
+sources: []
