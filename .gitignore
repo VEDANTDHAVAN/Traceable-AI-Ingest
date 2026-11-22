@@ -11,3 +11,4 @@ data/*
 !data/.gitkeep
 *.sqlite3
 .DS_Store
+src/ai_intelligence_ingestion.egg-info/

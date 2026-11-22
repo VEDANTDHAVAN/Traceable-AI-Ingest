@@ -41,7 +41,14 @@ class ProviderFailure(RuntimeError):
 
 
 class ExtractionFailed(RuntimeError):
-    pass
+    def __init__(
+        self,
+        message: str,
+        *,
+        events: list[dict] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.events = list(events or [])
 
 
 class Provider(Protocol):
@@ -372,7 +379,8 @@ class ExtractionEngine:
                             return results
 
             raise ExtractionFailed(
-                f"No provider accepted chunk at offset {chunk.start}."
+                f"No provider accepted chunk at offset {chunk.start}.",
+                events=events,
             )
 
         results = []
