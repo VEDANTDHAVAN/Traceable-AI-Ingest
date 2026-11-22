@@ -16,7 +16,7 @@ import aiohttp
 from ai_ingest.github_metrics import GitHubError, rate_delay
 from ai_ingest.repository_links import canonical_repository_url
 from ai_ingest.storage.sqlite import paper_identity
-
+from ai_ingest.readme_cache import load_readme_cache
 
 ARXIV_REFERENCE = re.compile(
     r"https?://(?:www\.)?arxiv\.org/"
@@ -304,7 +304,19 @@ async def verify(input_path: Path, output_dir: Path) -> dict:
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
-    cache = {}
+    cache = load_readme_cache(output_dir)
+
+    eligible_repositories = {
+        row["candidate_repository_url"]
+        for row in rows
+        if "github_stars" in row["github"]
+    }
+
+    historical_readmes_available = len(
+        eligible_repositories.intersection(cache)
+    )
+
+    fetched_readme_repositories = 0
     results = []
 
     async with aiohttp.ClientSession(
@@ -327,6 +339,8 @@ async def verify(input_path: Path, output_dir: Path) -> dict:
                         repository,
                         raw_dir,
                     )
+
+                    fetched_readme_repositories += 1
 
                 readme = cache[repository]
                 readme_evidence = readme["evidence"]
@@ -383,6 +397,8 @@ async def verify(input_path: Path, output_dir: Path) -> dict:
         "accepted_by_reciprocal_link_rule": sum(
             row["association_verified"] for row in results
         ),
+        "historical_readmes_available": historical_readmes_available,
+        "fetched_readme_repositories": fetched_readme_repositories,
         "unresolved": sum(
             not row["association_verified"]
             for row in results
