@@ -1,0 +1,10 @@
+[
+  {
+    "entity_id": "org:openai",
+    "canonical_name": "OpenAI",
+    "aliases": [
+      "Open AI",
+      "OpenAI, Inc."
+    ]
+  }
+]

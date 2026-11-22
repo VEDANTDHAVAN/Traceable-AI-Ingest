@@ -3,6 +3,7 @@ import hashlib
 import random
 import time
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Annotated, Protocol
 
@@ -132,7 +133,7 @@ def validate_facts(
 class ExtractionEngine:
     def __init__(
         self,
-        providers: list[Provider],
+        providers: Sequence[Provider],
         *,
         chunk_bytes: int = 12_000,
         attempts: int = 3,
