@@ -1,0 +1,1 @@
+"""Evidence-grounded extraction and provider orchestration."""
