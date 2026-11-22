@@ -16,7 +16,7 @@ Async, source-traceable ingestion pipeline for startups, products, AI research p
 4. Run tests: `pytest`
 5. Run CLI help: `ai-ingest --help`
 
-No real ingestion is enabled in this skeleton. Source adapters, credentials, and per-source compliance settings must be added before running crawls.
+arXiv bulk crawl, GitHub metric enrichment, and evidence-gated enrichment import are implemented. News, jobs, LLM extraction, entity resolution, and export are not yet enabled. See `docs/capability-matrix.md`.
 
 ## Layout
 - `src/ai_ingest/`: application, schemas, source adapters, storage, extraction, resolution.
