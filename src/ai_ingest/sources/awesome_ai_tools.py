@@ -38,7 +38,6 @@ ALLOWED_PRICING = {
     "enterprise": "ENTERPRISE",
 }
 
-
 def normalize_product_url(value: str) -> str:
     if not isinstance(value, str):
         raise ValueError("Product URL must be a string.")
@@ -51,7 +50,6 @@ def normalize_product_url(value: str) -> str:
         or parsed.username
         or parsed.password
         or parsed.port is not None
-        or not parsed.path.strip("/")
     ):
         raise ValueError("Unexpected product URL.")
 
@@ -64,7 +62,6 @@ def normalize_product_url(value: str) -> str:
             "",
         )
     )
-
 
 def normalize_pricing(value) -> str | None:
     if value is None:

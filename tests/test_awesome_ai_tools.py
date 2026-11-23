@@ -89,3 +89,28 @@ def test_query_and_fragment_removed():
     assert normalize_product_url(
         "https://example.com/tool/?utm_source=x#top"
     ) == "https://example.com/tool"
+
+
+def test_root_domain_product_url_accepted():
+    assert normalize_product_url(
+        "https://example.com"
+    ) == "https://example.com"
+
+
+def test_root_domain_trailing_slash_normalized():
+    assert normalize_product_url(
+        "https://example.com/"
+    ) == "https://example.com"
+
+
+def test_query_string_removed_from_product_url():
+    assert normalize_product_url(
+        "https://example.com/tool?utm_source=x"
+    ) == "https://example.com/tool"
+
+
+def test_explicit_port_rejected():
+    with pytest.raises(ValueError):
+        normalize_product_url(
+            "https://example.com:8080/tool"
+        )
