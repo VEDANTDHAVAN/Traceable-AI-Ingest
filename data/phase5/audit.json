@@ -1,0 +1,30 @@
+{
+  "phase5_complete": true,
+  "gates": {
+    "async_operation_implemented": true,
+    "aiohttp_used": true,
+    "bounded_concurrency": true,
+    "per_source_limits": true,
+    "retry_backoff_with_jitter": true,
+    "circuit_breaker": true,
+    "robots_compliance": true,
+    "blocked_requests_logged": true,
+    "rate_limit_events_logged": true,
+    "no_bypass_modules": true,
+    "no_anti_bot_bypass_claims": true,
+    "protected_sources_documented": true,
+    "browser_rendering_not_required": true,
+    "policies_present_in_runs": true
+  },
+  "counts": {
+    "http_reports": 3,
+    "blocked_events": 19,
+    "rate_limit_events": 0,
+    "source_policies": 39,
+    "max_concurrency_cap": 2,
+    "banned_modules_found": [],
+    "capability_claim_matches": [],
+    "missing_policy_sources": []
+  },
+  "errors": []
+}

@@ -9,6 +9,10 @@ coverage.xml
 htmlcov/
 data/*
 !data/.gitkeep
+!data/*/audit.json
+!data/*/acquisition_report.json
+!data/final_audit.json
+!data/exports/metadata.json
 *.sqlite3
 .DS_Store
 src/ai_intelligence_ingestion.egg-info/

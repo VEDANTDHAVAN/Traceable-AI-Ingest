@@ -1,0 +1,45 @@
+{
+  "phase3_complete": true,
+  "gates": {
+    "provider_fallback_configured": true,
+    "three_provider_keys_configured": true,
+    "chunking_implemented": true,
+    "payload_413_handling_implemented": true,
+    "rate_limit_429_backoff_implemented": true,
+    "provider_fallback_implemented": true,
+    "attempt_logs_present": true,
+    "evidence_and_offsets_validated": true,
+    "all_non_null_extractions_grounded": true,
+    "no_fabricated_values": true,
+    "source_hash_and_url_present": true,
+    "chunk_coverage_complete": true,
+    "null_fields_have_reasons": true,
+    "canonical_records_unchanged": true
+  },
+  "counts": {
+    "run_id": "20261123T113558357138Z",
+    "records_extracted": 3,
+    "records_failed": 1,
+    "claims_total": 8,
+    "claims_verified": 8,
+    "provider_attempts_logged": 12,
+    "providers_seen": [
+      "gemini:gemini-3.8-flash",
+      "groq:openai/gpt-oss-120b"
+    ],
+    "chunk_bytes": 4000
+  },
+  "errors": [],
+  "implementation": {
+    "async_engine": true,
+    "chunking": true,
+    "payload_too_large_413_split": true,
+    "rate_limit_429_retry": true,
+    "jitter_backoff": true,
+    "provider_fallback": true,
+    "provider_schema_payload": true,
+    "request_byte_guard": true,
+    "static_attempt_logging": true,
+    "coverage_validation": true
+  }
+}

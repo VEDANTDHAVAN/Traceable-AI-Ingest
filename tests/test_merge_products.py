@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_ingest.merge_products import normalize_product_url, merge_snapshots
+from ai_ingest.merge_products import merge_snapshots, normalize_product_url
 from ai_ingest.models import SourceRef, ProductRecord
 
 def write_jsonl(path: Path, rows):
@@ -97,8 +97,10 @@ def test_autoventure_provenance_without_source_product_name(
     )
 
     result = merge_snapshots(
-        autoventure,
-        awesome,
+        {
+            "AUTOVENTURE": autoventure,
+            "AWESOME_AI_TOOLS": awesome,
+        },
         output,
     )
 
@@ -144,3 +146,62 @@ def test_non_https_url_rejected():
         normalize_product_url(
             "http://example.com/product"
         )
+
+
+def test_cross_source_duplicate_retains_both_sources(tmp_path: Path):
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    output = tmp_path / "merged"
+
+    shared_url = "https://example.com/shared-product"
+
+    def record(name: str, pricing: str | None):
+        return ProductRecord.model_validate(
+            {
+                "source": {"name": "Fixture", "url": shared_url},
+                "collectedAt": "2026-01-01T00:00:00Z",
+                "content": {"productName": name, "pricingModel": pricing},
+            }
+        )
+
+    write_jsonl(first / "products.jsonl", [record("Shared Product", None)])
+    write_jsonl(
+        first / "provenance.jsonl",
+        [
+            {
+                "source_record_id": "a-1",
+                "source_product_name": "Shared Product",
+                "raw_sha256": "a" * 64,
+            }
+        ],
+    )
+    write_jsonl(second / "products.jsonl", [record("Shared Product", "FREE")])
+    write_jsonl(
+        second / "provenance.jsonl",
+        [
+            {
+                "source_record_id": "b-1",
+                "source_product_name": "Shared Product",
+                "raw_sha256": "b" * 64,
+            }
+        ],
+    )
+
+    result = merge_snapshots(
+        {"FIRST": first, "SECOND": second},
+        output,
+    )
+
+    assert result["merged_unique_products"] == 1
+    assert result["cross_source_duplicates"] == 1
+    assert result["merged_products_with_multiple_sources"] == 1
+    assert result["products_with_known_pricing"] == 1
+
+    provenance = json.loads(
+        (output / "provenance.jsonl").read_text(encoding="utf-8")
+    )
+    assert [ref["source"] for ref in provenance["sources"]] == [
+        "FIRST",
+        "SECOND",
+    ]
+    assert provenance["pricing_resolution_status"] == "SOURCE_PROVIDED"

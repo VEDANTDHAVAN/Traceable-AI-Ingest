@@ -1,56 +1,47 @@
-# Capability matrix — assessment gap analysis
+# Capability matrix
 
-Status of each assessment requirement against the repository as it stands.
-States: **IMPLEMENTED**, **PARTIAL**, **MISSING**.
+Status of each assessment requirement. States: **EXECUTED**, **IMPLEMENTED**
+(code + tests, not necessarily executed at production scale), **BLOCKED**.
 
-Audited against `src/ai_ingest/`, `configs/`, `tests/`, and `data/arxiv/papers.sqlite3`
-(175 papers stored, 61 paper↔repository candidate pairs: 9 cached, 52 pending).
-Test suite at audit time: 100 passing.
-
-## A. Canonical output schemas (Pydantic v2)
-
-| Requirement | State | Location / gap |
+| Requirement | State | Evidence |
 |---|---|---|
-| STARTUP (`entityName`, `data.employeeCount`) | IMPLEMENTED | `src/ai_ingest/models.py:70-81` |
-| PRODUCT (`startupName`, `pricingModel`) | PARTIAL | `models.py:84-92` — `productName` required, `startupName` optional; assessment wants canonical `startupName` |
-| RESEARCH_PAPER (title, authors, paper_url, github_url/stars, published_date) | IMPLEMENTED | `models.py:95-123` (stricter: stars require url + observation timestamp) |
-| JOB (company, date, is_remote, role_family) | PARTIAL | `models.py:126-137` — adds required `title`/`full_text`; `company` optional |
-| NEWS (headline, summary, full_text, published_date, entities_mentioned) | PARTIAL | `models.py:140-148` — has `title`/`date`/`full_text`; missing `headline`, `summary`, `published_date`, `entities_mentioned` |
-| Entity Mapping Log (raw_name, canonical_name, match_method, confidence_score, source_url) | MISSING | no model; planned in `docs/schema-decisions.md` |
+| Phase I: ≥1,000 unique startups | EXECUTED | 4,656; `data/phase1/audit.json` |
+| Phase I: ≥1,000 unique products | EXECUTED | 24,938 merged from 3 licensed sources |
+| Phase I: ≥1,000 unique papers | EXECUTED | 1,790 papers |
+| Phase I: ≥1,000 paper→repo associations | EXECUTED | 1,660 accepted associations |
+| Phase I: current GitHub stars | EXECUTED | live GitHub API, observation timestamp stored |
+| Phase I: source hash + provenance verification | EXECUTED | audit re-hashes raw snapshots |
+| Phase I: bounded concurrency / resumability | EXECUTED | Papers with Code: 4 arXiv + 8 GitHub concurrency, page cache resume |
+| Phase I: 500k scale design | IMPLEMENTED (design) | `docs/scale.md`; no load test |
+| Phase II: 5+ news sources | EXECUTED | 6 feeds queried |
+| Phase II: 5+ job boards | EXECUTED | 8 boards queried |
+| Phase II: 24-hour freshness gate | EXECUTED | 18 news + 124 jobs; stale/undated quarantined |
+| Phase II: full text where permitted | EXECUTED | `FULL_TEXT` / `FEED_SUMMARY` recorded per item |
+| Phase II: distributed dedup registry | IMPLEMENTED | SQLite registry with atomic claims |
+| Phase III: Gemini→Groq→DeepSeek chain | EXECUTED | live Gemini 503/429 → Groq accepted |
+| Phase III: chunking, 413 split, 429 backoff | EXECUTED | attempt logs + unit tests |
+| Phase III: grounded claims with offsets | EXECUTED | 8/8 claims revalidated; 1 ungrounded response rejected |
+| Phase IV: ≥50 seed entities | EXECUTED | 66 entities / 164 names |
+| Phase IV: deterministic resolution | EXECUTED | exact/alias only; 4,782 mapping rows |
+| Phase IV: no ownership inference | EXECUTED | `ownership_verified=false` everywhere |
+| Phase V: async, bounded, robots, backoff, circuit breaker | EXECUTED | `src/ai_ingest/net.py`; blocked events logged |
+| Phase V: no bypass claims/code | EXECUTED | `docs/compliance.md`; audit scans imports |
+| Phase VI: architecture PDF ≤3 pages | EXECUTED | `architecture.pdf`, 2 pages |
+| Six-tab export validated | EXECUTED | `data/exports/*.csv` + `metadata.json` |
+| Public Google Sheet | BLOCKED | no Google credentials/service account available |
 
-## B. Pipeline capabilities
+## Known limitations
 
-| Phase | Requirement | State | Evidence / gap |
-|---|---|---|---|
-| I | Bulk research papers (arXiv) | IMPLEMENTED | `sources/arxiv.py:247`, `arxiv_bulk.py:54`, `storage/sqlite.py:54` |
-| I | GitHub `stargazers_count` with `GITHUB_TOKEN` + rate-limit tracking | IMPLEMENTED | `github_metrics.py:290`, `repository_links.py:120`, `verify_associations.py:50` |
-| I | ≥1,000 startups / products / papers | PARTIAL | 175 papers stored; no startup/product adapters; no Papers-with-Code |
-| I | 500k+ scale via worker/queue config | MISSING | `TCPConnector(limit=1)` (`github_metrics.py:325`), SQLite single-writer |
-| II | 5 AI news + 5 AI job sources | MISSING | `configs/sources.yaml` is `sources: []` |
-| II | Full-text article/job extraction | MISSING | no adapters or parsers |
-| II | Date normalization (ISO/RFC/JSON-LD/relative) | MISSING | `python-dateutil` declared, unused |
-| II | Freshness ledger (URL + content hash) | MISSING | — |
-| II | 24h freshness gate for JOB/NEWS | MISSING | contract only (`docs/data-contract.md:13-14`) |
-| III | LLM chain Gemini→Groq→DeepSeek | MISSING | env keys only (`.env.example:5-7`) |
-| III | HTML pruning + token-aware chunking (no 413) | MISSING | — |
-| III | Per-provider semaphores + backoff/jitter + failover | MISSING | — |
-| IV | 50+ canonical seed registry | MISSING | `configs/` has only empty `sources.yaml` |
-| IV | Exact→normalized→fuzzy matcher + mapping log | MISSING | — |
-| V | 6-tab `.xlsx` / Sheets exporter | MISSING | — |
-| VI | README setup/run commands | PARTIAL | `README.md` still says no ingestion enabled (stale) |
-| VI | Root `architecture.pdf` (≤3 pages) | MISSING | — |
-
-## C. Schema / contract discrepancies
-
-- `docs/schema-decisions.md:11-48` documents assessment field names vs. project
-  extensions (`productName`, `github_metrics_collected_at`, job `title`/`full_text`,
-  NEWS as `title`/`date`/`full_text`).
-- `docs/data-contract.md:11` states the record-type minimum contract.
-- PRODUCT/JOB/NEWS drift from the assessment field names is intentional staging
-  but must be reconciled before export.
-- Entity Mapping Log is absent from both schema and docs.
-
-## D. Declared but unused dependencies (intended extension points)
-
-`pydantic-settings`, `structlog`, `feedparser`, `beautifulsoup4`, `tenacity`,
-`python-dateutil` are in `pyproject.toml` but imported nowhere in `src/`.
+- Startup employee counts are null: the source does not provide them.
+- Company ownership is not resolved for products (0 resolved): no source
+  establishes it. This is deliberate, not a failure to infer.
+- AIToolBuzz has no pricing field, so its products retain null pricing.
+- Product acquisition runs predate the shared HTTP telemetry; their per-source
+  duration/retry counters are not instrumented. Paper and Phase II runs are.
+- Papers without an accepted repository association have no stars (null).
+- Groq Llama 3 was unavailable on the configured account (HTTP 404); the Groq
+  provider was pointed at an available Groq model for the executed run. The
+  provider order is unchanged. DeepSeek returned HTTP 402 (insufficient
+  balance) and was not exercised live.
+- The Google Sheet gate remains false until credentials are supplied; the six
+  validated CSVs and uploader are ready.

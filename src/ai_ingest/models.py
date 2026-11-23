@@ -126,10 +126,13 @@ class ResearchPaperRecord(BaseRecord):
 class JobContent(Model):
     title: NonEmptyString
     company: NonEmptyString | None = None
-    date: Timestamp | None = None
-    is_remote: StrictBool | None = None
-    role_family: NonEmptyString | None = None
+    date: Timestamp
+    isRemote: StrictBool | None = None
+    roleFamily: NonEmptyString | None = None
     full_text: NonEmptyString
+    extraction_status: Literal["FULL_TEXT", "FEED_SUMMARY", "FAILED"] = (
+        "FEED_SUMMARY"
+    )
 
 
 class JobRecord(BaseRecord):
@@ -139,8 +142,15 @@ class JobRecord(BaseRecord):
 
 class NewsContent(Model):
     title: NonEmptyString
-    date: Timestamp | None = None
+    date: Timestamp
     full_text: NonEmptyString
+    canonical_url: HttpUrl
+    content_sha256: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+    freshness_status: Literal["FRESH_24H"] = "FRESH_24H"
+    extraction_status: Literal["FULL_TEXT", "FEED_SUMMARY", "FAILED"] = (
+        "FEED_SUMMARY"
+    )
+    ingested_at: Timestamp
 
 
 class NewsRecord(BaseRecord):
@@ -156,3 +166,24 @@ Record = Annotated[
     | NewsRecord,
     Field(discriminator="recordType"),
 ]
+
+
+class EntityMappingRecord(Model):
+    """Evidence-bearing row of the entity-mapping log."""
+
+    raw_name: NonEmptyString
+    normalized_key: NonEmptyString
+    canonical_entity_id: NonEmptyString | None = None
+    canonical_name: NonEmptyString | None = None
+    status: Literal["RESOLVED", "UNRESOLVED", "MISSING"]
+    method: NonEmptyString | None = None
+    record_type: Literal["STARTUP", "PRODUCT", "RESEARCH_PAPER", "JOB", "NEWS"]
+    source_url: HttpUrl
+    source_text_sha256: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+    evidence: NonEmptyString
+    ownership_verification_status: Literal[
+        "NAME_MATCH_ONLY",
+        "NOT_VERIFIED",
+        "SOURCE_UNKNOWN",
+    ] = "NAME_MATCH_ONLY"
+    ownership_verified: Literal[False] = False

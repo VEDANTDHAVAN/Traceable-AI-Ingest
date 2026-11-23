@@ -1,0 +1,42 @@
+{
+  "generated_at": "2026-11-23T12:06:24.294667+00:00",
+  "sources": {
+    "startups_run": "20261123T064030531620Z",
+    "products": {
+      "merged_unique_products": 24938,
+      "products_with_known_pricing": 474,
+      "merged_products_with_multiple_sources": 776
+    },
+    "papers": {
+      "unique_papers": 1790,
+      "accepted_associations": 1660,
+      "github_metrics_present_for_accepted": true
+    }
+  },
+  "validation": {
+    "tabs": [
+      "Startups",
+      "Products",
+      "Research Papers",
+      "Jobs",
+      "News",
+      "Entity Mapping Log"
+    ],
+    "counts": {
+      "Startups": 4656,
+      "Products": 24938,
+      "Research Papers": 1790,
+      "Jobs": 124,
+      "News": 18,
+      "Entity Mapping Log": 4782
+    },
+    "papers_with_github_stars": 1600,
+    "all_rows_have_source_url": true,
+    "all_exported_news_within_24_hours": true,
+    "all_exported_jobs_within_24_hours": true,
+    "no_duplicate_canonical_urls": true,
+    "no_fabricated_star_fields": true,
+    "validation_passed": true,
+    "errors": []
+  }
+}

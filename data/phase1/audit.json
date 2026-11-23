@@ -1,0 +1,27 @@
+{
+  "phase1_complete": true,
+  "gates": {
+    "unique_startups_ge_1000": true,
+    "unique_products_ge_1000": true,
+    "unique_research_papers_ge_1000": true,
+    "paper_repository_associations_ge_1000": true,
+    "github_metrics_present_for_accepted": true,
+    "all_exported_records_have_valid_source_url": true,
+    "all_exported_records_have_provenance": true,
+    "schema_validation_passed": true,
+    "source_hash_validation_passed": true,
+    "deduplication_audit_passed": true
+  },
+  "counts": {
+    "unique_startups": 4656,
+    "unique_products": 24938,
+    "unique_research_papers": 1790,
+    "paper_repository_associations": 1660,
+    "github_metrics_present_for_accepted": true,
+    "startup_duplicates": 0,
+    "startup_quarantine": 25,
+    "product_duplicates": 934,
+    "paper_quarantine": 318
+  },
+  "errors": []
+}

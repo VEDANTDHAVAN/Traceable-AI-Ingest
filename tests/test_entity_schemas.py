@@ -113,7 +113,11 @@ def test_record_discriminator():
             "recordType": "NEWS",
             "content": {
                 "title": "Synthetic News",
+                "date": "2026-01-01T10:00:00Z",
                 "full_text": "Synthetic test content.",
+                "canonical_url": "https://example.org/item",
+                "content_sha256": "a" * 64,
+                "ingested_at": "2026-01-01T10:00:00Z",
             },
         }
     )

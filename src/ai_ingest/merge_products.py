@@ -48,6 +48,44 @@ def normalize_product_name(value: str) -> str:
 
     return " ".join(tokens)
 
+def _retain_contributor(
+    provenance: list[dict],
+    record_index: int,
+    source_ref: dict,
+) -> None:
+    """Preserve every source that contributed to a merged product."""
+    sources = provenance[record_index]["sources"]
+
+    for existing in sources:
+        if (
+            existing["source"] == source_ref["source"]
+            and existing["source_record_id"]
+            == source_ref["source_record_id"]
+        ):
+            return
+
+    sources.append(source_ref)
+
+
+def _fill_missing_pricing(
+    merged: list,
+    provenance: list[dict],
+    record_index: int,
+    duplicate,
+) -> None:
+    """Adopt source-provided pricing only when the kept row is unknown."""
+    kept = merged[record_index]
+
+    if (
+        kept.content.pricingModel is None
+        and duplicate.content.pricingModel is not None
+    ):
+        kept.content.pricingModel = duplicate.content.pricingModel
+        provenance[record_index]["pricing_resolution_status"] = (
+            "SOURCE_PROVIDED"
+        )
+
+
 def read_jsonl(path: Path) -> list[dict]:
     rows = []
 
@@ -67,45 +105,11 @@ def read_jsonl(path: Path) -> list[dict]:
 
 
 def merge_snapshots(
-    autoventure: Path,
-    awesome: Path,
+    snapshots: dict[str, Path],
     output_dir: Path,
 ) -> dict:
-    autoventure_records = [
-        ProductRecord.model_validate(row)
-        for row in read_jsonl(
-            autoventure / "products.jsonl"
-        )
-    ]
-
-    awesome_records = [
-        ProductRecord.model_validate(row)
-        for row in read_jsonl(
-            awesome / "products.jsonl"
-        )
-    ]
-
-    autoventure_provenance = read_jsonl(
-        autoventure / "provenance.jsonl"
-    )
-
-    awesome_provenance = read_jsonl(
-        awesome / "provenance.jsonl"
-    )
-
-    if len(autoventure_records) != len(
-        autoventure_provenance
-    ):
-        raise ValueError(
-            "AutoVenture record/provenance count mismatch."
-        )
-
-    if len(awesome_records) != len(
-        awesome_provenance
-    ):
-        raise ValueError(
-            "Awesome AI Tools record/provenance count mismatch."
-        )
+    if not snapshots:
+        raise ValueError("At least one snapshot is required.")
 
     collected_at = datetime.now(timezone.utc)
 
@@ -116,20 +120,20 @@ def merge_snapshots(
     by_url = {}
     by_name = {}
 
-    sources = [
-        (
-            "AUTOVENTURE",
-            autoventure,
-            autoventure_records,
-            autoventure_provenance,
-        ),
-        (
-            "AWESOME_AI_TOOLS",
-            awesome,
-            awesome_records,
-            awesome_provenance,
-        ),
-    ]
+    sources = []
+    for source_name, snapshot in snapshots.items():
+        records = [
+            ProductRecord.model_validate(row)
+            for row in read_jsonl(snapshot / "products.jsonl")
+        ]
+        evidence = read_jsonl(snapshot / "provenance.jsonl")
+
+        if len(records) != len(evidence):
+            raise ValueError(
+                f"{source_name} record/provenance count mismatch."
+            )
+
+        sources.append((source_name, snapshot, records, evidence))
 
     for source_name, snapshot, records, evidence in sources:
         for index, (record, row) in enumerate(
@@ -167,6 +171,23 @@ def merge_snapshots(
             existing = by_url.get(source_url)
 
             if existing is not None:
+                cross_source = any(
+                    contributor["source"] != source_name
+                    for contributor in provenance[
+                        existing["record_index"]
+                    ]["sources"]
+                )
+                _retain_contributor(
+                    provenance,
+                    existing["record_index"],
+                    source_ref,
+                )
+                _fill_missing_pricing(
+                    merged,
+                    provenance,
+                    existing["record_index"],
+                    record,
+                )
                 duplicates.append(
                     {
                         "reason": "DUPLICATE_NORMALIZED_URL",
@@ -178,6 +199,8 @@ def merge_snapshots(
                             "source_record_id"
                         ],
                         "normalized_url": source_url,
+                        "retained_in_provenance": True,
+                        "cross_source": cross_source,
                     }
                 )
                 continue
@@ -185,6 +208,23 @@ def merge_snapshots(
             existing = by_name.get(name_key)
 
             if existing is not None:
+                cross_source = any(
+                    contributor["source"] != source_name
+                    for contributor in provenance[
+                        existing["record_index"]
+                    ]["sources"]
+                )
+                _retain_contributor(
+                    provenance,
+                    existing["record_index"],
+                    source_ref,
+                )
+                _fill_missing_pricing(
+                    merged,
+                    provenance,
+                    existing["record_index"],
+                    record,
+                )
                 duplicates.append(
                     {
                         "reason": "DUPLICATE_NORMALIZED_PRODUCT_NAME",
@@ -196,6 +236,8 @@ def merge_snapshots(
                             "source_record_id"
                         ],
                         "normalized_product_name": name_key,
+                        "retained_in_provenance": True,
+                        "cross_source": cross_source,
                     }
                 )
                 continue
@@ -255,15 +297,17 @@ def merge_snapshots(
         "schema_version": "1.0",
         "merged_at": collected_at.isoformat(),
         "input_snapshots": {
-            "AUTOVENTURE": str(autoventure),
-            "AWESOME_AI_TOOLS": str(awesome),
+            name: str(path) for name, path in snapshots.items()
         },
-        "input_records": (
-            len(autoventure_records)
-            + len(awesome_records)
-        ),
+        "input_records": sum(len(s[2]) for s in sources),
         "merged_unique_products": len(merged),
         "duplicate_records": len(duplicates),
+        "cross_source_duplicates": sum(
+            1 for row in duplicates if row.get("cross_source")
+        ),
+        "merged_products_with_multiple_sources": sum(
+            1 for row in provenance if len(row["sources"]) > 1
+        ),
         "products_with_known_pricing": sum(
             record.content.pricingModel is not None
             for record in merged
@@ -307,6 +351,11 @@ def main() -> None:
     )
 
     parser.add_argument(
+        "--aitoolbuzz",
+        type=Path,
+    )
+
+    parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path(
@@ -316,10 +365,16 @@ def main() -> None:
 
     args = parser.parse_args()
 
+    snapshots = {
+        "AUTOVENTURE": args.autoventure,
+        "AWESOME_AI_TOOLS": args.awesome,
+    }
+    if args.aitoolbuzz is not None:
+        snapshots["AITOOLBUZZ"] = args.aitoolbuzz
+
     try:
         result = merge_snapshots(
-            args.autoventure,
-            args.awesome,
+            snapshots,
             args.output_dir,
         )
     except Exception as exc:

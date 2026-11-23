@@ -1,0 +1,84 @@
+{
+  "final_end_to_end_audit_passed": false,
+  "gates": {
+    "phase1_audit_passed": true,
+    "unique_startups_ge_1000": true,
+    "unique_products_ge_1000": true,
+    "unique_research_papers_ge_1000": true,
+    "paper_repository_associations_ge_1000": true,
+    "github_metrics_present_for_accepted": true,
+    "phase2_audit_passed": true,
+    "news_sources_queried_ge_5": true,
+    "job_boards_queried_ge_5": true,
+    "all_exported_news_within_24_hours": true,
+    "all_exported_jobs_within_24_hours": true,
+    "phase3_audit_passed": true,
+    "all_non_null_extractions_grounded": true,
+    "provider_fallback_implemented": true,
+    "chunking_implemented": true,
+    "rate_limit_backoff_implemented": true,
+    "phase4_audit_passed": true,
+    "seed_entities_ge_50": true,
+    "entity_mapping_log_complete": true,
+    "no_unsupported_ownership_inference": true,
+    "phase5_audit_passed": true,
+    "async_operation_implemented": true,
+    "no_anti_bot_bypass_claims": true,
+    "phase6_architecture_pdf_created": true,
+    "architecture_pdf_page_count_le_3": true,
+    "google_sheet_created": false,
+    "google_sheet_public": false,
+    "sheet_has_six_required_tabs": false,
+    "all_sheet_rows_schema_valid": true,
+    "all_sheet_rows_source_backed": true,
+    "six_csv_exports_present": true
+  },
+  "counts": {
+    "unique_startups": 4656,
+    "unique_products": 24938,
+    "unique_research_papers": 1790,
+    "paper_repository_associations": 1660,
+    "news_sources_queried": 6,
+    "job_boards_queried": 8,
+    "seed_entities": 66,
+    "entity_mapping_rows": 4782,
+    "architecture_pdf_pages": 2,
+    "export_counts": {
+      "Startups": 4656,
+      "Products": 24938,
+      "Research Papers": 1790,
+      "Jobs": 124,
+      "News": 18,
+      "Entity Mapping Log": 4782
+    },
+    "google_sheet_url": null
+  },
+  "failed_gates": [
+    "google_sheet_created",
+    "google_sheet_public",
+    "sheet_has_six_required_tabs"
+  ],
+  "distinction": {
+    "source_backed": [
+      "startups",
+      "products",
+      "research papers and associations",
+      "news and jobs"
+    ],
+    "independently_verified": [
+      "GitHub stars fetched live from the GitHub API for accepted associations"
+    ],
+    "implemented_behavior": [
+      "async bounded acquisition",
+      "24-hour freshness gate",
+      "grounded multi-provider extraction",
+      "deterministic entity resolution",
+      "robots/retry/circuit-breaker controls"
+    ],
+    "designed_not_executed": [
+      "distributed queue and workers",
+      "500k-record load test",
+      "managed storage partitioning and production alerting"
+    ]
+  }
+}

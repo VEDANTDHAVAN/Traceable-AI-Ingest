@@ -1,0 +1,30 @@
+{
+  "phase2_complete": true,
+  "gates": {
+    "news_sources_queried_ge_5": true,
+    "job_boards_queried_ge_5": true,
+    "all_exported_news_within_24_hours": true,
+    "all_exported_jobs_within_24_hours": true,
+    "missing_freshness_quarantined": true,
+    "full_text_status_recorded": true,
+    "content_hashes_present": true,
+    "source_urls_present": true,
+    "no_duplicate_urls": true,
+    "no_duplicate_content_hashes": true,
+    "provenance_for_every_record": true,
+    "rate_limit_compliance_documented": true,
+    "processed_registry_present": true
+  },
+  "counts": {
+    "news_sources_queried": 6,
+    "job_boards_queried": 8,
+    "news_exported": 18,
+    "jobs_exported": 124,
+    "news_fresh_within_24h": 18,
+    "jobs_fresh_within_24h": 124,
+    "quarantine_records": 2120,
+    "duplicate_records": 151,
+    "provenance_rows": 142
+  },
+  "errors": []
+}

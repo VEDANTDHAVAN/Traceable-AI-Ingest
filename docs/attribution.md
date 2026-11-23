@@ -57,6 +57,56 @@ Limitations:
 Publisher classifications are secondary-source assertions.
 Individual profile pages are not automatically fetched or validated.
 
+## AIToolBuzz AI Tools Database
+
+Dataset:
+https://huggingface.co/datasets/aitoolbuzz/ai-tools-database-25k-aitoolbuzz
+
+License stated on the dataset card: CC-BY-SA-4.0.
+
+Attribution:
+Data: AIToolBuzz AI Tools Database (CC-BY-SA-4.0).
+
+Changes:
+CSV rows normalized into product records. Product name and official website
+retained. Pricing is null because the observed CSV schema has no pricing field.
+Company ownership is not inferred.
+
+Limitations:
+Directory listings are secondary assertions. They do not establish product
+quality, pricing or company ownership.
+
+## Papers with Code archive
+
+Dataset:
+pwc-archive/links-between-paper-and-code (Hugging Face datasets-server)
+
+License: CC-BY-SA-4.0.
+
+Attribution:
+Data: Papers with Code archive links-between-paper-and-code (CC-BY-SA-4.0).
+
+Changes:
+Association rows are classified as OFFICIAL or COMMUNITY from the dataset's
+is_official flag. Paper metadata is fetched from the arXiv API. GitHub stars and
+collection timestamps are fetched from the GitHub REST API.
+
+Limitations:
+Community links are curated implementations, not official code. A GitHub star
+count is an observation at collection time, not a quality claim.
+
+## News and job sources
+
+News records retain the publisher name, feed URL, article URL, publication
+timestamp and attribution note. Job records retain the board name, job URL and
+access basis documented in `docs/compliance.md`. Remote OK's published API terms
+require source attribution and a follow link; the export includes both the
+source name and the original job URL.
+
+No article body is republished beyond what the source feed or a
+robots-permitted page provided for extraction. Full text is stored only in the
+local, gitignored data directory.
+
 ## Awesome AI Tools
 
 Repository:

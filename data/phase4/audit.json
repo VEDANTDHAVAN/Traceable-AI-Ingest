@@ -1,0 +1,21 @@
+{
+  "phase4_complete": true,
+  "gates": {
+    "seed_entities_ge_50": true,
+    "no_conflicting_aliases": true,
+    "deterministic_resolution": true,
+    "no_unsupported_ownership_inference": true,
+    "mapping_log_complete": true,
+    "evidence_retention": true,
+    "unresolved_preserved_with_status": true
+  },
+  "counts": {
+    "seed_entities": 66,
+    "seed_aliases": 164,
+    "mapping_rows": 4782,
+    "resolved_rows": 53,
+    "unresolved_rows": 4729,
+    "ownership_verified_rows": 0
+  },
+  "errors": []
+}

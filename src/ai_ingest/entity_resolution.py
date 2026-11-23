@@ -53,6 +53,7 @@ class CanonicalEntity:
     entity_id: str
     canonical_name: str
     aliases: tuple[str, ...] = ()
+    identifiers: tuple[str, ...] = ()
 
 
 class EntityResolver:
@@ -112,6 +113,7 @@ class EntityResolver:
                 raise ValueError("Seed entry must be an object.")
 
             aliases = row.get("aliases", [])
+            identifiers = row.get("identifiers", [])
 
             if (
                 not isinstance(aliases, list)
@@ -124,11 +126,23 @@ class EntityResolver:
                     "Entity aliases must be an array of strings."
                 )
 
+            if (
+                not isinstance(identifiers, list)
+                or not all(
+                    isinstance(identifier, str)
+                    for identifier in identifiers
+                )
+            ):
+                raise ValueError(
+                    "Entity identifiers must be an array of strings."
+                )
+
             entities.append(
                 CanonicalEntity(
                     entity_id=row["entity_id"],
                     canonical_name=row["canonical_name"],
                     aliases=tuple(aliases),
+                    identifiers=tuple(identifiers),
                 )
             )
 

@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0",
+  "startups": {
+    "run": "20261123T064030531620Z",
+    "input_csv_rows": null,
+    "staged_unique_startup_candidates": 4656,
+    "duplicate_rows": 0,
+    "quarantine_entries": 25,
+    "employee_counts_present": false,
+    "profile_pages_independently_validated": false
+  },
+  "products": {
+    "merge_run": "20261123T114800000000Z",
+    "sources": {
+      "AUTOVENTURE": {
+        "snapshot": "data\\products\\autoventure\\20261122T110737006223Z",
+        "input_rows": 450,
+        "staged": 450,
+        "duplicates": null,
+        "quarantine": null,
+        "license": null,
+        "collected_at": "2026-11-22T11:07:37.006223+00:00",
+        "telemetry": "NOT_INSTRUMENTED"
+      },
+      "AWESOME_AI_TOOLS": {
+        "snapshot": "data\\products\\awesome-ai-tools\\20261123T071750412718Z",
+        "input_rows": 499,
+        "staged": 499,
+        "duplicates": 0,
+        "quarantine": 0,
+        "license": null,
+        "collected_at": "2026-11-23T07:17:50.412718+00:00",
+        "telemetry": "NOT_INSTRUMENTED"
+      },
+      "AITOOLBUZZ": {
+        "snapshot": "data\\products\\aitoolbuzz\\20261123T092543649079Z",
+        "input_rows": 25004,
+        "staged": 24923,
+        "duplicates": 9,
+        "quarantine": 72,
+        "license": "CC-BY-SA-4.0",
+        "collected_at": "2026-11-23T09:25:45.595298+00:00",
+        "telemetry": "NOT_INSTRUMENTED"
+      }
+    },
+    "input_records": 25872,
+    "merged_unique_products": 24938,
+    "duplicate_records": 934,
+    "cross_source_duplicates": 412,
+    "products_with_multiple_sources": 776,
+    "products_with_known_pricing": 474,
+    "products_with_resolved_company": 0,
+    "minimum_1000_candidates_reached": true,
+    "telemetry": "PRODUCT_RUNS_NOT_INSTRUMENTED; merge is deterministic and local, so wall-clock/retry counters were not recorded"
+  },
+  "papers": {
+    "run": "20261123T102415290582Z",
+    "input_association_rows": 2000,
+    "unique_associations": 1871,
+    "unique_papers": 1790,
+    "accepted_associations": 1660,
+    "official_associations": 996,
+    "community_associations": 664,
+    "repositories_with_metrics": 1660,
+    "github_metrics_present_for_accepted": true,
+    "quarantine_rows": 318,
+    "concurrency": 4,
+    "github_concurrency": 8,
+    "wall_clock_seconds": 178.359,
+    "records_per_second": 9.307,
+    "resumable": true
+  },
+  "gates": {
+    "unique_startups_ge_1000": true,
+    "unique_products_ge_1000": true,
+    "unique_papers_ge_1000": true,
+    "associations_ge_1000": true
+  }
+}

@@ -1,3 +1,12 @@
+"""Grounded multi-provider extraction engine.
+
+Every non-null claim must carry a verbatim quote with character offsets into
+the normalized source text. The engine validates grounding before accepting a
+provider response and never relaxes that check for a fallback provider.
+"""
+
+from __future__ import annotations
+
 import asyncio
 import hashlib
 import random
@@ -21,11 +30,43 @@ class GroundedValue(BaseModel):
 
 
 class ExtractedFacts(BaseModel):
+    """Product/news ownership and pricing claims."""
+
     model_config = ConfigDict(extra="forbid")
 
-    # Required keys; unknown values must explicitly be null.
     organization_name: GroundedValue | None
+    product_name: GroundedValue | None = None
     pricing_description: GroundedValue | None
+
+
+class NewsFacts(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    organization_name: GroundedValue | None
+    product_name: GroundedValue | None
+    pricing_description: GroundedValue | None
+
+
+class JobFacts(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    company_name: GroundedValue | None
+    product_name: GroundedValue | None
+    pricing_description: GroundedValue | None
+    publication_date: GroundedValue | None
+    remote_eligibility: GroundedValue | None
+    role_family: GroundedValue | None
+
+
+FACT_MODELS: dict[str, type[BaseModel]] = {
+    "product": ExtractedFacts,
+    "news": NewsFacts,
+    "job": JobFacts,
+}
+
+
+def fact_fields(model: type[BaseModel]) -> list[str]:
+    return list(model.model_fields)
 
 
 class ProviderFailure(RuntimeError):
@@ -56,7 +97,7 @@ class Provider(Protocol):
     name: str
 
     async def generate(self, text: str) -> str:
-        """Return JSON matching ExtractedFacts."""
+        """Return JSON matching the configured fact schema."""
         ...
 
 
@@ -109,10 +150,11 @@ def split_text(text: str, max_bytes: int) -> list[Chunk]:
 def validate_facts(
     raw_json: str,
     source_text: str,
-) -> ExtractedFacts:
-    facts = ExtractedFacts.model_validate_json(raw_json)
+    model: type[BaseModel] = ExtractedFacts,
+) -> BaseModel:
+    facts = model.model_validate_json(raw_json)
 
-    for field in ("organization_name", "pricing_description"):
+    for field in fact_fields(model):
         claim = getattr(facts, field)
 
         if claim is None:
@@ -130,11 +172,30 @@ def validate_facts(
     return facts
 
 
+def coverage_spans(chunks: list[dict]) -> list[tuple[int, int]]:
+    return sorted(
+        (chunk["chunk_start"], chunk["chunk_end"]) for chunk in chunks
+    )
+
+
+def coverage_complete(chunks: list[dict], source_characters: int) -> bool:
+    spans = coverage_spans(chunks)
+    if not spans:
+        return False
+    if spans[0][0] != 0 or spans[-1][1] != source_characters:
+        return False
+    return all(
+        previous[1] == following[0]
+        for previous, following in zip(spans, spans[1:])
+    )
+
+
 class ExtractionEngine:
     def __init__(
         self,
         providers: Sequence[Provider],
         *,
+        schema: str = "product",
         chunk_bytes: int = 12_000,
         attempts: int = 3,
         timeout_seconds: float = 60,
@@ -143,6 +204,9 @@ class ExtractionEngine:
     ) -> None:
         if not providers:
             raise ValueError("At least one provider is required.")
+
+        if schema not in FACT_MODELS:
+            raise ValueError(f"Unknown fact schema: {schema}")
 
         names = [provider.name for provider in providers]
 
@@ -159,11 +223,19 @@ class ExtractionEngine:
             raise ValueError("Invalid engine configuration.")
 
         self.providers = providers
+        self.schema = schema
+        self.facts_model = FACT_MODELS[schema]
         self.chunk_bytes = chunk_bytes
         self.attempts = attempts
         self.timeout_seconds = timeout_seconds
         self.max_wait_seconds = max_wait_seconds
         self.max_requests = max_requests
+
+        # Providers expose a schema name so they can build the exact request
+        # payload and stay within documented limits.
+        for provider in providers:
+            if hasattr(provider, "schema_name"):
+                provider.schema_name = schema
 
         self._locks = {
             provider.name: asyncio.Lock()
@@ -176,10 +248,12 @@ class ExtractionEngine:
         }
 
     async def extract(self, text: str) -> dict:
+        """Extract grounded facts and prove complete chunk coverage."""
         if not text.strip():
             raise ValueError("Source text cannot be empty.")
 
-        initial_chunks = split_text(text, self.chunk_bytes)
+        chunk_size = self.chunk_bytes
+        initial_chunks = split_text(text, chunk_size)
 
         if len(initial_chunks) > self.max_requests:
             raise ExtractionFailed(
@@ -187,7 +261,9 @@ class ExtractionEngine:
             )
 
         requests_used = 0
-        events = []
+        events: list[dict] = []
+        attempts_log: list[dict] = []
+        provider_calls: list[dict] = []
 
         async def process(
             chunk: Chunk,
@@ -200,6 +276,7 @@ class ExtractionEngine:
                 len(self.providers),
             ):
                 provider = self.providers[provider_index]
+                model = getattr(provider, "model", provider.name)
                 should_split = False
 
                 async with self._locks[provider.name]:
@@ -215,6 +292,7 @@ class ExtractionEngine:
                                 {
                                     "provider": provider.name,
                                     "event": "cooldown_skip",
+                                    "chunk_start": chunk.start,
                                 }
                             )
                             break
@@ -224,10 +302,12 @@ class ExtractionEngine:
 
                         if requests_used >= self.max_requests:
                             raise ExtractionFailed(
-                                "Request budget exhausted."
+                                "Request budget exhausted.",
+                                events=events,
                             )
 
                         requests_used += 1
+                        call_started = time.monotonic()
 
                         try:
                             response = await asyncio.wait_for(
@@ -238,17 +318,30 @@ class ExtractionEngine:
                             facts = validate_facts(
                                 response,
                                 chunk.text,
+                                self.facts_model,
                             )
 
                         except ProviderFailure as exc:
-                            events.append(
-                                {
-                                    "provider": provider.name,
-                                    "event": "provider_error",
-                                    "status": exc.status,
-                                    "attempt": attempt + 1,
-                                }
+                            latency_ms = round(
+                                (time.monotonic() - call_started) * 1000, 1
                             )
+                            event = {
+                                "event": "attempt",
+                                "provider": provider.name,
+                                "model": model,
+                                "status": exc.status,
+                                "attempt": attempt + 1,
+                                "chunk_start": chunk.start,
+                                "chunk_bytes": len(chunk.text.encode("utf-8")),
+                                "latency_ms": latency_ms,
+                                "outcome": "payload_too_large"
+                                if exc.status == 413
+                                else "rate_limited"
+                                if exc.status == 429
+                                else "provider_error",
+                            }
+                            events.append(event)
+                            attempts_log.append(event)
 
                             if exc.status == 413:
                                 should_split = True
@@ -281,13 +374,21 @@ class ExtractionEngine:
                                 break
 
                         except asyncio.TimeoutError:
-                            events.append(
-                                {
-                                    "provider": provider.name,
-                                    "event": "timeout",
-                                    "attempt": attempt + 1,
-                                }
+                            latency_ms = round(
+                                (time.monotonic() - call_started) * 1000, 1
                             )
+                            event = {
+                                "event": "attempt",
+                                "provider": provider.name,
+                                "model": model,
+                                "status": None,
+                                "attempt": attempt + 1,
+                                "chunk_start": chunk.start,
+                                "latency_ms": latency_ms,
+                                "outcome": "timeout",
+                            }
+                            events.append(event)
+                            attempts_log.append(event)
 
                             self._cooldowns[provider.name] = (
                                 time.monotonic()
@@ -298,24 +399,59 @@ class ExtractionEngine:
                             )
 
                         except ValueError:
-                            # Invalid JSON, schema, or grounding.
-                            # Do not accept it or repeatedly ask
-                            # the same provider to invent a repair.
-                            events.append(
-                                {
-                                    "provider": provider.name,
-                                    "event": "invalid_output",
-                                }
+                            # Invalid JSON, schema, or grounding. Do not accept
+                            # it or repeatedly ask the same provider to invent
+                            # a repair.
+                            latency_ms = round(
+                                (time.monotonic() - call_started) * 1000, 1
                             )
+                            event = {
+                                "event": "attempt",
+                                "provider": provider.name,
+                                "model": model,
+                                "status": 200,
+                                "attempt": attempt + 1,
+                                "chunk_start": chunk.start,
+                                "latency_ms": latency_ms,
+                                "outcome": "ungrounded_or_invalid",
+                            }
+                            events.append(event)
+                            attempts_log.append(event)
                             break
 
                         else:
+                            latency_ms = round(
+                                (time.monotonic() - call_started) * 1000, 1
+                            )
+                            event = {
+                                "event": "attempt",
+                                "provider": provider.name,
+                                "model": model,
+                                "status": 200,
+                                "attempt": attempt + 1,
+                                "chunk_start": chunk.start,
+                                "latency_ms": latency_ms,
+                                "outcome": "accepted",
+                            }
+                            events.append(event)
+                            attempts_log.append(event)
+
+                            usage = getattr(provider, "last_usage", None)
+                            provider_calls.append(
+                                {
+                                    "provider": provider.name,
+                                    "model": model,
+                                    "status": 200,
+                                    "attempt": attempt + 1,
+                                    "chunk_start": chunk.start,
+                                    "latency_ms": latency_ms,
+                                    "usage": usage,
+                                }
+                            )
+
                             grounded = {}
 
-                            for field in (
-                                "organization_name",
-                                "pricing_description",
-                            ):
+                            for field in fact_fields(self.facts_model):
                                 claim = getattr(facts, field)
 
                                 if claim is None:
@@ -326,16 +462,18 @@ class ExtractionEngine:
                                     claim.quote
                                 )
 
-                                quote_start = (
-                                    chunk.start + local_start
+                                quote_start = chunk.start + local_start
+                                quote_end = quote_start + len(claim.quote)
+
+                                assert chunk.start <= quote_start
+                                assert quote_end <= (
+                                    chunk.start + len(chunk.text)
                                 )
 
                                 grounded[field] = {
                                     **claim.model_dump(),
                                     "quote_start": quote_start,
-                                    "quote_end": (
-                                        quote_start + len(claim.quote)
-                                    ),
+                                    "quote_end": quote_end,
                                 }
 
                             return [
@@ -345,15 +483,14 @@ class ExtractionEngine:
                                         chunk.start + len(chunk.text)
                                     ),
                                     "provider": provider.name,
+                                    "model": model,
                                     "facts": grounded,
                                 }
                             ]
 
                 # Release the provider lock before recursive calls.
                 if should_split:
-                    current_bytes = len(
-                        chunk.text.encode("utf-8")
-                    )
+                    current_bytes = len(chunk.text.encode("utf-8"))
 
                     if current_bytes > 4:
                         smaller = split_text(
@@ -362,6 +499,16 @@ class ExtractionEngine:
                         )
 
                         if len(smaller) > 1:
+                            events.append(
+                                {
+                                    "provider": provider.name,
+                                    "event": "chunk_reduced",
+                                    "chunk_start": chunk.start,
+                                    "from_bytes": current_bytes,
+                                    "to_bytes": max(4, current_bytes // 2),
+                                    "parts": len(smaller),
+                                }
+                            )
                             results = []
 
                             for part in smaller:
@@ -389,12 +536,25 @@ class ExtractionEngine:
         for chunk in initial_chunks:
             results.extend(await process(chunk))
 
+        complete = coverage_complete(results, len(text))
+
+        if not complete:
+            raise ExtractionFailed(
+                "Chunk coverage is not contiguous and complete.",
+                events=events,
+            )
+
         return {
             "source_text_sha256": hashlib.sha256(
                 text.encode("utf-8")
             ).hexdigest(),
             "source_characters": len(text),
+            "schema": self.schema,
+            "chunk_bytes": chunk_size,
             "requests_used": requests_used,
-            "chunks": results,
+            "coverage_complete": complete,
+            "chunks": sorted(results, key=lambda chunk: chunk["chunk_start"]),
+            "provider_attempts": attempts_log,
+            "provider_calls": provider_calls,
             "events": events,
         }

@@ -10,6 +10,7 @@ import aiohttp
 
 from ai_ingest.llm.engine import (
     ExtractedFacts,
+    FACT_MODELS,
     ProviderFailure,
 )
 from ai_ingest.sources.arxiv import retry_after_seconds
@@ -47,13 +48,14 @@ def build_request(
     kind: str,
     model: str,
     text: str,
+    schema=ExtractedFacts,
 ) -> tuple[str, dict]:
-    schema = ExtractedFacts.model_json_schema()
-
     instruction = (
         SYSTEM_INSTRUCTION
         + "\nJSON schema:\n"
-        + json.dumps(schema)
+        + json.dumps(schema.model_json_schema())
+        + "\nReturn every schema key; use null when the source "
+        "does not establish the value."
     )
 
     # JSON-encoding the source makes its data boundary explicit.
@@ -186,12 +188,19 @@ class HTTPProvider:
         self.evidence_dir = evidence_dir
         self.max_request_bytes = max_request_bytes
         self.name = f"{kind}:{self.model}"
+        self.schema_name = "product"
+        self.last_usage: dict | None = None
 
     async def generate(self, text: str) -> str:
+        schema = FACT_MODELS.get(self.schema_name)
+        if schema is None:
+            raise ValueError(f"Unknown fact schema: {self.schema_name}")
+
         endpoint, payload = build_request(
             self.kind,
             self.model,
             text,
+            schema,
         )
 
         body = json.dumps(
@@ -301,6 +310,11 @@ class HTTPProvider:
 
         try:
             response_payload = json.loads(raw)
+
+            usage = response_payload.get(
+                "usageMetadata"
+            ) or response_payload.get("usage")
+            self.last_usage = usage if isinstance(usage, dict) else None
 
             return extract_response_text(
                 self.kind,
