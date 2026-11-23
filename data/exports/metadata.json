@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-23T12:06:24.294667+00:00",
+  "generated_at": "2026-11-23T13:19:01.971770+00:00",
   "sources": {
     "startups_run": "20261123T064030531620Z",
     "products": {
@@ -38,5 +38,31 @@
     "no_fabricated_star_fields": true,
     "validation_passed": true,
     "errors": []
+  },
+  "google_sheet": {
+    "spreadsheet_id": "1j48GMSwsrCsVayFSNk1UAOK_PbFPi2uuTOXeYjh7a34",
+    "url": "https://docs.google.com/spreadsheets/d/1j48GMSwsrCsVayFSNk1UAOK_PbFPi2uuTOXeYjh7a34",
+    "title": "FrontierAtlas AI Intelligence Ingestion",
+    "tabs": [
+      "Sheet1",
+      "Startups",
+      "Products",
+      "Research Papers",
+      "Jobs",
+      "News",
+      "Entity Mapping Log"
+    ],
+    "tabs_correct": false,
+    "public": true,
+    "share_verified": true,
+    "share_error": null,
+    "uploaded_row_counts": {
+      "Startups": 4656,
+      "Products": 24938,
+      "Research Papers": 1790,
+      "Jobs": 124,
+      "News": 18,
+      "Entity Mapping Log": 4782
+    }
   }
 }

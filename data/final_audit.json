@@ -26,8 +26,8 @@
     "no_anti_bot_bypass_claims": true,
     "phase6_architecture_pdf_created": true,
     "architecture_pdf_page_count_le_3": true,
-    "google_sheet_created": false,
-    "google_sheet_public": false,
+    "google_sheet_created": true,
+    "google_sheet_public": true,
     "sheet_has_six_required_tabs": false,
     "all_sheet_rows_schema_valid": true,
     "all_sheet_rows_source_backed": true,
@@ -51,11 +51,9 @@
       "News": 18,
       "Entity Mapping Log": 4782
     },
-    "google_sheet_url": null
+    "google_sheet_url": "https://docs.google.com/spreadsheets/d/1j48GMSwsrCsVayFSNk1UAOK_PbFPi2uuTOXeYjh7a34"
   },
   "failed_gates": [
-    "google_sheet_created",
-    "google_sheet_public",
     "sheet_has_six_required_tabs"
   ],
   "distinction": {

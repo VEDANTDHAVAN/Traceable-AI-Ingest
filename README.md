@@ -17,7 +17,7 @@ quarantine instead of being inferred.
 | Jobs | 8 boards queried, 124 AI jobs inside the 24-hour gate |
 | LLM extraction | 3 records, 8/8 non-null claims revalidated at exact offsets |
 | Entity resolution | 66 seed entities, 4,782 mapping rows, 0 ownership claims |
-| Tests | 200+ unit/integration tests |
+| Tests | 220 unit/integration tests |
 
 Machine-readable audits live in `data/phase1/audit.json`,
 `data/phase2/audit.json`, `data/phase3/audit.json`, `data/phase4/audit.json`,
@@ -95,9 +95,12 @@ python scripts/audit_final.py
    JSON key outside the repository.
 3. Run:
    `python scripts/export_sheets.py --upload --credentials /path/to/key.json`
-4. The uploader keeps exactly the six required tabs, writes the rows, shares the
-   spreadsheet as anyone-with-link reader and records the URL in
-   `data/exports/google_sheet.json`.
+4. The uploader writes the six required tabs, shares the spreadsheet as
+   anyone-with-link reader and records the URL in
+   `data/exports/google_sheet.json`. A pre-existing default worksheet (for
+   example `Sheet1`) is **not** deleted unless you pass
+   `--delete-unexpected-tabs`, so the workbook may contain one extra tab
+   alongside the six required ones.
 
 Do not commit the service-account key. The uploader never prints credentials.
 
@@ -116,6 +119,12 @@ Do not commit the service-account key. The uploader never prints credentials.
 
 `data/` is gitignored except `.gitkeep`: it contains raw snapshots, run outputs
 and audit artifacts produced on this machine. Re-run the commands to rebuild it.
+
+## Demo
+
+A written walkthrough of the complete pipeline — every command, measured
+output and verification step — is in [`demo.md`](demo.md). A Loom video is
+not available; the document reproduces the demo in full.
 
 ## Attribution
 
