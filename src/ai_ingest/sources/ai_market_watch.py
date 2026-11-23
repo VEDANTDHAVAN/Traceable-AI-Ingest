@@ -107,9 +107,19 @@ def normalize_startup(
     if not isinstance(name, str) or not name.strip():
         raise ValueError("Missing company name.")
 
-    profile = normalize_profile_url(
-        row.get("profile_url", "")
-    )
+    profile_raw = row.get("profile_url", "")
+
+    if not isinstance(profile_raw, str) or not profile_raw.strip():
+        raise ValueError(
+            "MISSING_PROFILE_URL"
+        )
+
+    try:
+        profile = normalize_profile_url(profile_raw)
+    except ValueError as exc:
+        raise ValueError(
+            f"INVALID_PROFILE_URL: {exc}"
+        ) from exc
 
     record = StartupRecord.model_validate(
         {

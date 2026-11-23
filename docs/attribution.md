@@ -56,3 +56,28 @@ and SHA-256 hashes retained per snapshot.
 Limitations:
 Publisher classifications are secondary-source assertions.
 Individual profile pages are not automatically fetched or validated.
+
+## Awesome AI Tools
+
+Repository:
+https://github.com/aliammari1/awesome-ai-tools
+
+License:
+CC0 1.0.
+
+Required attribution:
+Data: Awesome AI Tools.
+
+Changes:
+Structured catalog records normalized into product records.
+Official URLs normalized.
+Unknown pricing retained as null.
+Company ownership not inferred from catalog entries.
+
+Evidence:
+Repository tree, individual tool JSON files, LICENSE file,
+collection timestamp, and SHA-256 hashes retained per snapshot.
+
+Limitations:
+Catalog entries are third-party directory listings.
+They do not establish company ownership.
